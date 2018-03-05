@@ -1,0 +1,219 @@
+package breakgame;
+
+import javax.swing.*;
+import javax.swing.event.*;
+
+import java.awt.*;
+import java.awt.event.*;
+import java.util.*;
+
+public class blockbreak extends JFrame
+{
+	gamepanel gp;
+
+	blockbreak()
+	{
+		this.setTitle("breakgame");
+		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+		gp = new gamepanel();
+		setContentPane(gp);
+
+		this.setSize(725, 600);
+		this.setResizable(false);
+		this.setVisible(true);
+	}
+
+	class gamepanel extends JPanel implements KeyListener
+	{
+		int score = 0;
+		JLabel paddle = new JLabel(); // 패들
+		block ball = new block(340, 480, 20, 20, 3); // 공
+		Vector<block> arrblock = new Vector<>(); // 블럭배열
+		JLabel scorela = new JLabel("score : " + score);
+		int row = 8;
+		int col = 9;
+		int rowsqlength = 80;
+		int collength = 25;
+
+		gamepanel()
+		{
+			this.setLayout(null);
+
+			paddle.setSize(100, 20);
+			paddle.setBackground(Color.black);
+			paddle.setLocation(300, 500);
+			paddle.setOpaque(true);
+
+			ball.setSize(20, 20);
+			ball.setBackground(Color.red);
+			ball.setLocation(340, 480);
+			ball.setOpaque(true);
+			
+			scorela.setFont(new Font("gothic",20,20));
+			scorela.setSize(100,20);
+			scorela.setVisible(true);
+			scorela.setLocation(20,530);
+			this.add(scorela);
+
+			for (int i = 0; i < row; i++)
+			{
+				for (int j = 0; j < col; j++)
+				{
+					block a = new block(rowsqlength * j, collength * i, 80, 25, 1);
+					a.setSize(80, 25);
+					a.setLocation(rowsqlength * j, collength * i);
+					a.setOpaque(true);
+					arrblock.add(a);
+				}
+			}
+
+			for (block b : arrblock)
+			{// 모든 블록 이미지 그리기
+				this.add(b);
+			}
+
+			this.add(ball);
+			this.add(paddle);
+			addKeyListener(this);
+			setFocusable(true);
+		}
+
+		public boolean contains(JLabel p, int x, int y) // 패들안에 들어갔는지 확인
+		{
+			if (((p.getX() <= x) && (x < p.getX() + p.getWidth())) && (p.getY() < y) && (y < p.getY() + p.getHeight()))
+			{
+				// System.out.println(ball.x + " , " + ball.y);
+				return true;
+			} else
+				return false;
+		}
+
+		public void update() // 공움직이기
+		{
+
+			ball.x += ball.dx; // 공 x좌표이동
+			// 양옆 벽에 걸렸을 때 방향바꾸기
+			if (ball.x > (getWidth() - 20) && ball.dx > 0 || ball.x < 0)
+			{
+				ball.dx *= -1;
+			}
+			// 패들이나, 위에 벽에 맞으면 방향바꾸기
+			if (ball.y < 0 || contains(paddle, ball.x, ball.y) || contains(paddle, ball.x + ball.getWidth(), ball.y)
+					|| contains(paddle, ball.x + ball.getWidth(), ball.y + ball.getHeight())
+					|| contains(paddle, ball.x, ball.y + ball.getHeight()))
+			{
+				System.out.println("reverse");
+				ball.dy *= -1;
+			}
+			// 블록에 부딪히는지 검사
+			for (block a : arrblock)
+			{
+				if (a.c == 1) // 블록색깔 있으면 값은 1
+				{
+					if (contains(a, ball.x, ball.y) || contains(a, ball.x + ball.getWidth(), ball.y)
+							|| contains(a, ball.x + ball.getWidth(), ball.y + ball.getHeight())
+							|| contains(a, ball.x, ball.y + ball.getHeight()))
+					{
+						System.out.println("hit");
+						a.c = 0; // 맞추면 0
+						ball.dy *= -1; // 방향바꾸기
+						ball.y += ball.dy;
+						ball.setLocation(ball.x, ball.y); // 방향바뀐 공그리기
+						a.setVisible(false); // 숨기기
+						score += 20; // 점수증가
+						scorela.setText("score : " + score);
+						this.remove(a);
+						
+						this.revalidate();
+						this.repaint();
+					}
+				}
+			}
+			ball.y += ball.dy;
+			ball.setLocation(ball.x, ball.y);
+		}
+
+		public class ballThread extends Thread
+		{
+			public void run()
+			{
+				while (true)
+				{
+					try
+					{
+						update();
+						Thread.sleep(10);
+					} catch (InterruptedException e)
+					{
+
+					}
+				}
+
+			}
+		}
+
+		public void keyPressed(KeyEvent arg0)
+		{
+			if (arg0.getKeyCode() == KeyEvent.VK_ENTER)
+			{
+				ballThread th = new ballThread(); // 게임시작
+				th.start();
+			}
+			if (arg0.getKeyCode() == KeyEvent.VK_LEFT)
+			{
+				// System.out.println(paddle.getX() + " , " + paddle.getY());
+				paddle.setLocation(paddle.getX() - 30, paddle.getY());
+			}
+			if (arg0.getKeyCode() == KeyEvent.VK_RIGHT)
+			{
+				// System.out.println(paddle.getX() + " , " + paddle.getY());
+				paddle.setLocation(paddle.getX() + 30, paddle.getY());
+			}
+			repaint();
+		}
+
+		@Override
+		public void keyReleased(KeyEvent arg0)
+		{
+			// TODO Auto-generated method stub
+
+		}
+
+		@Override
+		public void keyTyped(KeyEvent arg0)
+		{
+			// TODO Auto-generated method stub
+
+		}
+
+	}
+
+	
+	class block extends JLabel
+	{
+		int x, y, w, h, c;
+		int dx = 2;
+		int dy = -2;
+
+		block(int x, int y, int w, int h, int c)
+		{
+			int rr = (int) (Math.random() * 255);
+			int gg = (int) (Math.random() * 255);
+			int bb = (int) (Math.random() * 255);
+			this.setBackground(new Color(rr, gg, bb)); // 랜덤색그리기
+
+			this.x = x;
+			this.y = y;
+			this.w = w;
+			this.h = h;
+			this.c = c;
+		}
+	}
+
+	public static void main(String[] args)
+	{
+		new blockbreak();
+	}
+
+}
